@@ -2,9 +2,10 @@ import { Request, Response } from "express";
 import User from "../Model/userModel";
 import bcrypt from "bcrypt";
 import transporter from "../Config/config";
-import { Error } from "mongoose";
+import jwt from "jsonwebtoken";
 
-
+//Token for Access
+const jwtAccessToken = process.env.JWT_TOKEN_SECRET as string;
 
 //OTP GENERATOR
 const generateOTP = (): string => {
@@ -117,8 +118,55 @@ const verifyOTP = async (req: Request, res: Response): Promise<any> => {
   }
 };
 
+//LOGIN
+const login = async (req: Request, res: Response): Promise<any> => {
+  try {
+    const { username, password }: { username: string; password: string } =
+      req.body;
+    if (!username || !password) {
+      return res
+        .status(400)
+        .json({ message: "Email and password are required" });
+    }
+    const user = await User.findOne({ username });
+    if (!user) {
+      return res.status(404).json({ message: "User not found" });
+    }
+    const isPasswordValid = await bcrypt.compare(password, user.password);
+    if (!isPasswordValid) {
+      return res.status(401).json({ message: "Invalid password" });
+    }
+
+    const token = jwt.sign(
+      {
+        userId: user._id,
+        username: user.username,
+        email: user.email,
+      },
+      jwtAccessToken,
+      {
+        expiresIn: "1h",
+      }
+    );
+    return res.status(200).json({
+      message: "Login successful",
+      token,
+      user: {
+        id: user._id,
+        email: user.email,
+        username: user.username,
+        phone: user.phone,
+      },
+    });
+  } catch (error) {
+    console.error("Error during login:", (error as Error).message);
+    return res.status(500).json({ message: "Internal Server Error" });
+  }
+};
+
 //EXPORTING
 export = {
   signup,
   verifyOTP,
+  login
 };

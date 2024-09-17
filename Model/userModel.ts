@@ -4,6 +4,7 @@ interface IUser extends Document {
   username : string,
   email : string,
   phone : number,
+  password : string,
   isAdmin? : boolean,
   isBlocked? : boolean
 }
@@ -19,6 +20,10 @@ const userSchema : Schema<IUser> = new Schema({
   },
   phone: {
     type: Number,
+    required: true,
+  },
+  password: {
+    type: String,
     required: true,
   },
   isAdmin: {
