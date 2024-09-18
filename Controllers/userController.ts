@@ -75,6 +75,7 @@ const signup = async (req: Request, res: Response): Promise<any> => {
 
     const otp = generateOTP();
     otpStore[email] = { otp, tempUser };
+    console.log(otp);
     await sendMail(email, otp);
 
     return res.status(200).json({
@@ -92,24 +93,29 @@ const signup = async (req: Request, res: Response): Promise<any> => {
 //VERIFY OTP
 const verifyOTP = async (req: Request, res: Response): Promise<any> => {
   try {
-    const { otp, email } = req.body;
-    if (!email || !otp) {
-      return res.status(400).json({ message: "Email and OTP are required" });
+    const { otp } = req.body;
+
+    if (!otp) {
+      return res.status(400).json({ message: "OTP is required" });
     }
 
-    const storedData = otpStore[email];
-    if (!storedData || storedData.otp !== otp) {
-      return res.status(400).json({
-        message: "Invalid OTP...!",
-      });
+    const userWithOtp = Object.entries(otpStore).find(
+      ([email, data]) => data.otp === otp
+    );
+
+    if (!userWithOtp) {
+      return res.status(400).json({ message: "Invalid OTP...!" });
+    } else {
+      const [email, storedData] = userWithOtp;
+      const { tempUser } = storedData;
+
+      const newUser = new User(tempUser);
+      await newUser.save();
+
+      delete otpStore[email];
+
+      return res.status(201).json({ message: "User registered successfully" });
     }
-
-    const { tempUser } = storedData;
-    const newUser = new User(tempUser);
-    await newUser.save();
-
-    delete otpStore[email];
-    return res.status(201).json({ message: "User registered successfully" });
   } catch (error) {
     console.error("Error during verifyOTP", (error as Error).message);
     return res.status(500).json({
@@ -126,8 +132,9 @@ const login = async (req: Request, res: Response): Promise<any> => {
     if (!username || !password) {
       return res
         .status(400)
-        .json({ message: "Email and password are required" });
+        .json({ message: "Username and password are required" });
     }
+
     const user = await User.findOne({ username });
     if (!user) {
       return res.status(404).json({ message: "User not found" });
@@ -168,5 +175,5 @@ const login = async (req: Request, res: Response): Promise<any> => {
 export = {
   signup,
   verifyOTP,
-  login
+  login,
 };
