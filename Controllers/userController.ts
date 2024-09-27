@@ -25,6 +25,11 @@ const otpStore: {
   };
 } = {};
 
+const resetPasswordOtpStore: {
+  [key: string]: {
+    otp: string;
+  };
+} = {};
 //SENDING MAIL
 const sendMail = async (email: string, otp: string): Promise<any> => {
   try {
@@ -171,9 +176,33 @@ const login = async (req: Request, res: Response): Promise<any> => {
   }
 };
 
+//VERIFY EMIAL FOR RESET PASSWORD
+const verifyMailResetPassword = async (
+  req: Request,
+  res: Response
+): Promise<any> => {
+  try {
+    const { email }: { email: string } = req.body;
+
+    const verifiedMail = await User.findOne({ email });
+    if (!verifiedMail) {
+      return res.status(404).json({ message: "User's mail is not found...!" });
+    }
+    const otp = generateOTP();
+    resetPasswordOtpStore[email] = { otp };
+    console.log(otp);
+    await sendMail(email, otp);
+    return res.status(200).json({ message: "OTP sent to your email." });
+  } catch (error) {
+    console.error("Error during verification:", (error as Error).message);
+    return res.status(500).json({ message: "Internal Server Error" });
+  }
+};
+
 //EXPORTING
 export = {
   signup,
   verifyOTP,
   login,
+  verifyMailResetPassword,
 };
