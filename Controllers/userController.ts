@@ -4,6 +4,7 @@ import bcrypt from "bcrypt";
 import transporter from "../Config/config";
 import jwt from "jsonwebtoken";
 
+
 //Token for Access
 const jwtAccessToken = process.env.JWT_TOKEN_SECRET as string;
 
@@ -132,21 +133,26 @@ const verifyOTP = async (req: Request, res: Response): Promise<any> => {
 //LOGIN
 const login = async (req: Request, res: Response): Promise<any> => {
   try {
-    const { username, password }: { username: string; password: string } =
-      req.body;
+    const { username, password }: { username: string; password: string } = req.body;
+
     if (!username || !password) {
-      return res
-        .status(400)
-        .json({ message: "Username and password are required" });
+      return res.status(400).json({ message: "Username and password are required" });
     }
 
     const user = await User.findOne({ username });
-    if (!user) {
-      return res.status(404).json({ message: "User not found" });
+
+    if (!user || !user.password) { // Check if user exists and password is defined
+      return res.status(404).json({ message: "User not found or password is not set" });
     }
+
     const isPasswordValid = await bcrypt.compare(password, user.password);
     if (!isPasswordValid) {
       return res.status(401).json({ message: "Invalid password" });
+    }
+
+    // Check if jwtAccessToken is defined
+    if (!jwtAccessToken) {
+      return res.status(500).json({ message: "JWT Access Token is not configured" });
     }
 
     const token = jwt.sign(
@@ -155,11 +161,12 @@ const login = async (req: Request, res: Response): Promise<any> => {
         username: user.username,
         email: user.email,
       },
-      jwtAccessToken,
+      jwtAccessToken, // Ensure the JWT access token is valid
       {
         expiresIn: "1h",
       }
     );
+
     return res.status(200).json({
       message: "Login successful",
       token,
@@ -176,6 +183,7 @@ const login = async (req: Request, res: Response): Promise<any> => {
   }
 };
 
+
 //VERIFY EMIAL FOR RESET PASSWORD
 const verifyMailResetPassword = async (
   req: Request,
@@ -189,12 +197,71 @@ const verifyMailResetPassword = async (
       return res.status(404).json({ message: "User's mail is not found...!" });
     }
     const otp = generateOTP();
-    resetPasswordOtpStore[email] = { otp };
     console.log(otp);
+    resetPasswordOtpStore[email] = { otp }; // Store email with OTP
     await sendMail(email, otp);
     return res.status(200).json({ message: "OTP sent to your email." });
   } catch (error) {
     console.error("Error during verification:", (error as Error).message);
+    return res.status(500).json({ message: "Internal Server Error" });
+  }
+};
+//VERIFICATION OTP FOR RESET PASSWORD
+const verifyOtpResetPassword = async (
+  req: Request,
+  res: Response
+): Promise<any> => {
+  try {
+    const { otp }: { otp: string } = req.body; // Just take the OTP from the request
+    const storedOtpDetails = Object.entries(resetPasswordOtpStore).find(
+      ([email, data]) => data.otp === otp
+    );
+
+    if (!storedOtpDetails) {
+      return res.status(404).json({ message: "OTP not found or expired." });
+    }
+
+    const [email, storedData] = storedOtpDetails;
+
+    if (otp === storedData.otp) {
+      return res
+        .status(200)
+        .json({ message: "OTP verified successfully.", email }); // Send back the email if needed
+    } else {
+      return res.status(400).json({ message: "Invalid OTP." });
+    }
+  } catch (error) {
+    console.error("Error during verification:", (error as Error).message);
+    return res.status(500).json({ message: "Internal Server Error" });
+  }
+};
+
+//RESET PASSWORD
+const resetPassword = async (req: Request, res: Response): Promise<any> => {
+  try {
+    const { newpassword }: { newpassword: string } = req.body;
+
+    const storedOtpDetails = Object.entries(resetPasswordOtpStore).find(
+      ([email]) => email
+    );
+
+    if (!storedOtpDetails) {
+      return res.status(404).json({ message: "Email not found." });
+    }
+
+    const [email] = storedOtpDetails;
+
+    const user = await User.findOne({ email });
+    if (!user) {
+      return res.status(404).json({ message: "User not found" });
+    }
+    const hashedPassword = await bcrypt.hash(newpassword, 10);
+
+    user.password = hashedPassword;
+    await user.save();
+    return res.status(200).json({ message: "Password reset successfully" });
+  } catch (error) {
+    console.error("Error during reset password:", (error as Error).message);
     return res.status(500).json({ message: "Internal Server Error" });
   }
 };
@@ -205,4 +272,6 @@ export = {
   verifyOTP,
   login,
   verifyMailResetPassword,
+  verifyOtpResetPassword,
+  resetPassword,
 };
