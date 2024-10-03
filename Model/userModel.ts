@@ -1,17 +1,15 @@
-import mongoose, { Document, Schema } from "mongoose";
+// src/models/userModel.ts
+import mongoose, { Schema } from "mongoose";
+import { IUser } from "../Interface/IUser";
 
-interface IUser extends Document {
-  username?: string;
-  email: string;
-  phone?: number;
-  password?: string;
-  googleId?: string;
-  displayName?: string;
-  isAdmin?: boolean;
-  isBlocked?: boolean;
-}
-
+// Define the user schema
 const userSchema: Schema<IUser> = new Schema({
+  firstName: {
+    type: String,
+  },
+  lastName: {
+    type: String,
+  },
   username: {
     type: String,
   },
@@ -20,11 +18,11 @@ const userSchema: Schema<IUser> = new Schema({
     required: true,
   },
   phone: {
-    type: Number,
+    type: String,
   },
   password: {
     type: String,
-    required: true
+    // required: true,
   },
   googleId: {
     type: String,
@@ -40,8 +38,15 @@ const userSchema: Schema<IUser> = new Schema({
     type: Boolean,
     default: false,
   },
+  bio: {
+    type: String,
+  },
+  profilePicture: {
+    type: String,
+  },
 });
 
+// Create the User model from the schema
 const User = mongoose.model<IUser>("User", userSchema);
 
 export default User;
