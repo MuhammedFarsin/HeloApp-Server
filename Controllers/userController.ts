@@ -14,6 +14,7 @@ import { IUser } from "../Interface/IUser"
 // Token for Access
 const jwtAccessToken = process.env.JWT_TOKEN_SECRET as string;
 
+
 // OTP GENERATOR
 const generateOTP = (): string => {
   return Math.floor(1000 + Math.random() * 9000).toString(); // 4-digit OTP
@@ -287,33 +288,21 @@ const resetPassword = async (req: Request, res: Response): Promise<void> => {
 };
 
 // GOOGLE SIGNIN
-const googleSignIn = (req: Request, res: Response): void => {
-  passport.authenticate("google", { scope: ["profile", "email"] })(req, res);
-};
+// const googleSignIn = (req : Request, res : Response) => {
+//   passport.authenticate("google", { scope: ["profile", "email"] })(req, res);
+// };
 
-// Google OAuth callback
-const googleCallback = (req: Request, res: Response): void => {
-  passport.authenticate("google", (err: any, user: any, info: any) => {
-    if (err) {
-      console.log("Google Auth Error:", err);
-      return res.redirect("http://localhost:5173/login");
-    }
+// // Google OAuth callback
+// const googleCallback = (req : Request, res : Response) => {
+//   passport.authenticate("google", (err : any, user : any) => {
+//     if (err || !user) {
+//       return res.status(401).send("Authentication failed.");
+//     }
 
-    if (!user) {
-      return res.redirect("http://localhost:5173/login");
-    }
-
-    // Generate JWT token after successful authentication
-    const token = jwt.sign(
-      { id: user.user._id, email: user.user.email },
-      jwtAccessToken,
-      { expiresIn: "1h" }
-    );
-
-    // Redirect with token in URL
-    return res.redirect(`http://localhost:5173/home?token=${token}`);
-  })(req, res);
-};
+//     const token = user.token; // The token from the authentication callback
+//     res.json({ token, user: user.user }); // Send token and user data
+//   })(req, res);
+// };
 
 
 export {
@@ -323,6 +312,4 @@ export {
   verifyMailResetPassword,
   verifyOtpResetPassword,
   resetPassword,
-  googleSignIn,
-  googleCallback,
 };

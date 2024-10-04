@@ -1,7 +1,8 @@
 import express, { Router } from "express";
 import session from "express-session";
 import * as userController from "../Controllers/userController";
-import passport from "../Controllers/googleAuth";
+import { googleAuth } from "../Controllers/googleAuth"
+// import passport from "../Controllers/googleAuth";
 import dotenv from "dotenv";
 
 dotenv.config();
@@ -21,8 +22,8 @@ userRoute.use(
 );
 
 // Initialize passport middleware after session
-userRoute.use(passport.initialize());
-userRoute.use(passport.session()); // Enable session support in passport
+// userRoute.use(passport.initialize());
+// userRoute.use(passport.session()); // Enable session support in passport
 
 // Define Routes
 userRoute.post("/login", userController.login);
@@ -39,7 +40,7 @@ userRoute.post(
 userRoute.post("/reset-password", userController.resetPassword);
 
 // Google OAuth Routes
-userRoute.get("/auth/google", userController.googleSignIn);
-userRoute.get("/auth/google/callback", userController.googleCallback);
+userRoute.post('/auth/google',googleAuth);
+
 
 export default userRoute;

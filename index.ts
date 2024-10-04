@@ -3,7 +3,6 @@ import mongoose from 'mongoose'
 import dotenv from 'dotenv'
 import cors from "cors"
 import  userRoute from "./Routes/userRoute"
-import passport from "./Controllers/googleAuth";
 
 dotenv.config()
 
@@ -16,7 +15,6 @@ mongoose.connect(process.env.MONGODB_URL as string)
 app.use(express.urlencoded({ extended: true }));
 app.use(express.json());
 app.use(cors());
-app.use(passport.initialize());
 
 app.use('/',userRoute)
 
