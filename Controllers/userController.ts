@@ -1,23 +1,21 @@
-import { Request, Response, NextFunction } from "express";
+import { Request, Response } from "express";
 import User from "../Model/userModel";
 import bcrypt from "bcrypt";
 import transporter from "../Config/config";
 import jwt from "jsonwebtoken";
-import passport from "passport";
+import { oauth2Client } from "../Config/googleAuth";
+import axios from "axios";
 import {
   OtpStoreEntry,
   ResetPasswordOtpEntry,
 } from "../Interface/otpInterface";
-
-import { IUser } from "../Interface/IUser"
+import { IUser } from "../Interface/IUser";
 
 // Token for Access
 const jwtAccessToken = process.env.JWT_TOKEN_SECRET as string;
-
-
 // OTP GENERATOR
 const generateOTP = (): string => {
-  return Math.floor(1000 + Math.random() * 9000).toString(); // 4-digit OTP
+  return Math.floor(1000 + Math.random() * 9000).toString();
 };
 
 // OTP Stores
@@ -30,9 +28,9 @@ const sendMail = async (email: string, otp: string): Promise<void> => {
     const mailOptions = {
       from: process.env.EMAIL,
       to: email,
-      subject: "Account Verification Code",
+      subject: "Account Verification CodeNumber",
       html: `<h3><span style='color: #23a925;'>HELO APP</span></h3>
-             <h5>Account Verification Code 📩</h5>
+             <h5>Account Verification CodeNumber 📩</h5>
              <h1>${otp}</h1>`,
     };
     const info = await transporter.sendMail(mailOptions);
@@ -59,23 +57,18 @@ const signup = async (req: Request, res: Response): Promise<void> => {
       googleId,
     }: IUser = req.body;
 
-    // Ensure required fields are present
     if (!username || !email || !phone || !password) {
-      res.status(400).json({ message: "Username, email, phone, and password are required" });
+      res
+        .status(400)
+        .json({ message: "Username, email, phone, and password are required" });
       return;
     }
-
-    // Check if the user already exists
     const duplicateUser = await User.findOne({ email });
     if (duplicateUser) {
       res.status(409).json({ message: "User already exists" });
       return;
     }
-
-    // Hash the password
     const hashedPassword = await bcrypt.hash(password, 10);
-
-    // Create user object using the User model to ensure Mongoose properties are included
     const newUser = new User({
       username,
       email,
@@ -90,22 +83,17 @@ const signup = async (req: Request, res: Response): Promise<void> => {
       isAdmin: false,
       isBlocked: false,
     });
-
-    // Generate OTP and store in the otpStore with a 10-minute expiry
+    // console.log(newUser)
     const otp = generateOTP();
     otpStore[email] = {
       otp,
       expiresIn: Date.now() + 10 * 60 * 1000,
-      tempUser: newUser.toObject(), // Store the user object as a plain object for OTP verification
+      tempUser: newUser.toObject(),
     };
-
-    // Send OTP to the user's email
     await sendMail(email, otp);
-
-    // Respond with success
     res.status(200).json({
       message: "Signup successful, please verify your email",
-      tempUser: newUser.toObject(), // Send a plain object back to the client
+      tempUser: newUser.toObject(),
     });
   } catch (error) {
     console.error("Error during signup:", (error as Error).message);
@@ -117,30 +105,23 @@ const signup = async (req: Request, res: Response): Promise<void> => {
 const verifyOTP = async (req: Request, res: Response): Promise<void> => {
   try {
     const { email, otp } = req.body;
-
     if (!email || !otp) {
       res.status(400).json({ message: "Email and OTP are required" });
       return;
     }
-
     const storedOTP = otpStore[email];
-
-    // Check if OTP is found and still valid
     if (!storedOTP || storedOTP.expiresIn < Date.now()) {
       res.status(400).json({ message: "OTP expired or not found" });
       return;
     }
 
-    // Compare the provided OTP with the stored one
     if (storedOTP.otp === otp) {
-      // Register the user and save to the database
-      const newUser = new User(storedOTP.tempUser); // Use tempUser from storedOTP
+      const newUser = new User(storedOTP.tempUser);
+      console.log(newUser);
       await newUser.save();
 
-      // Remove OTP from the store after successful verification
       delete otpStore[email];
 
-      // Respond with success
       res.status(201).json({ message: "User registered successfully" });
     } else {
       res.status(400).json({ message: "Invalid OTP" });
@@ -181,18 +162,16 @@ const login = async (req: Request, res: Response): Promise<void> => {
       }
     );
 
-    res
-      .status(200)
-      .json({
-        message: "Login successful",
-        token,
-        user: {
-          id: user._id,
-          email: user.email,
-          username: user.username,
-          phone: user.phone,
-        },
-      });
+    res.status(200).json({
+      message: "Login successful",
+      token,
+      user: {
+        id: user._id,
+        email: user.email,
+        username: user.username,
+        phone: user.phone,
+      },
+    });
   } catch (error) {
     console.error("Error during login:", (error as Error).message);
     res.status(500).json({ message: "Internal Server Error" });
@@ -214,10 +193,9 @@ const verifyMailResetPassword = async (
     }
 
     const otp = generateOTP();
-    const expiresIn = Date.now() + 10 * 60 * 1000; // OTP will expire in 10 minutes
+    const expiresIn = Date.now() + 10 * 60 * 1000;
 
-    resetPasswordOtpStore[email] = { otp, expiresIn }; // Include both otp and expiresIn
-
+    resetPasswordOtpStore[email] = { otp, expiresIn };
     await sendMail(email, otp);
     res.status(200).json({ message: "OTP sent to your email" });
   } catch (error) {
@@ -244,7 +222,6 @@ const verifyOtpResetPassword = async (
       res.status(404).json({ message: "OTP not found or expired" });
       return;
     }
-
     const [email] = storedOtpDetails;
     res.status(200).json({ message: "OTP verified successfully", email });
   } catch (error) {
@@ -276,7 +253,6 @@ const resetPassword = async (req: Request, res: Response): Promise<void> => {
       res.status(404).json({ message: "User not found" });
       return;
     }
-
     user.password = await bcrypt.hash(newpassword, 10);
     await user.save();
 
@@ -287,23 +263,56 @@ const resetPassword = async (req: Request, res: Response): Promise<void> => {
   }
 };
 
-// GOOGLE SIGNIN
-// const googleSignIn = (req : Request, res : Response) => {
-//   passport.authenticate("google", { scope: ["profile", "email"] })(req, res);
-// };
+//GOOGLE LOGIN
+const googleLogin = async (req: Request, res: Response) => {
+  try {
+    const { code } = req.query as { code: string };
 
-// // Google OAuth callback
-// const googleCallback = (req : Request, res : Response) => {
-//   passport.authenticate("google", (err : any, user : any) => {
-//     if (err || !user) {
-//       return res.status(401).send("Authentication failed.");
-//     }
+    const googleRes = await oauth2Client.getToken(code);
+    oauth2Client.setCredentials(googleRes.tokens);
 
-//     const token = user.token; // The token from the authentication callback
-//     res.json({ token, user: user.user }); // Send token and user data
-//   })(req, res);
-// };
+    const userRes = await axios.get(
+      `https://www.googleapis.com/oauth2/v1/userinfo?alt=json&access_token=${googleRes.tokens.access_token}`
+    );
 
+    const {
+      email,
+      given_name: firstName,
+      family_name: lastName,
+      picture: profilePicture,
+    } = userRes.data;
+    let user = await User.findOne({ email });
+
+    if (!user) {
+      user = await User.create({
+        firstName,
+        lastName,
+        email,
+        profilePicture,
+        displayName: `${firstName} ${lastName}`,
+      });
+
+      await user.save();
+    }
+
+    const token = jwt.sign(
+      { _id: user._id, email: user.email, isAdmin: user.isAdmin },
+      jwtAccessToken,
+      { expiresIn: "1h" }
+    );
+
+    return res.status(200).json({
+      message: user
+        ? "User logged in successfully"
+        : "User created and logged in successfully",
+      token,
+      user,
+    });
+  } catch (error) {
+    console.log(error, "Error during Google login");
+    return res.status(500).json({ message: "Server error" });
+  }
+};
 
 export {
   signup,
@@ -312,4 +321,5 @@ export {
   verifyMailResetPassword,
   verifyOtpResetPassword,
   resetPassword,
+  googleLogin,
 };
