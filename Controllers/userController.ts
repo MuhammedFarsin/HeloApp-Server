@@ -117,7 +117,6 @@ const verifyOTP = async (req: Request, res: Response): Promise<void> => {
 
     if (storedOTP.otp === otp) {
       const newUser = new User(storedOTP.tempUser);
-      console.log(newUser);
       await newUser.save();
 
       delete otpStore[email];
@@ -141,7 +140,9 @@ const login = async (req: Request, res: Response): Promise<void> => {
       return;
     }
 
-    const user = await User.findOne({ username });
+    const user = await User.findOne({
+      username: { $regex: new RegExp(`^${username}$`, "i") }  // case-insensitive match
+    });
 
     if (!user || !user.password) {
       res.status(404).json({ message: "User not found" });
