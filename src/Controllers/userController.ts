@@ -145,13 +145,13 @@ const login = async (req: Request, res: Response): Promise<void> => {
     });
 
     if (!user || !user.password) {
-      res.status(404).json({ message: "User not found" });
+      res.status(404).json({ message: "User not found...!" });
       return;
     }
 
     const isPasswordValid = await bcrypt.compare(password, user.password);
     if (!isPasswordValid) {
-      res.status(401).json({ message: "Invalid password" });
+      res.status(401).json({ message: "Invalid password...!" });
       return;
     }
 
@@ -189,7 +189,7 @@ const verifyMailResetPassword = async (
 
     const user = await User.findOne({ email });
     if (!user) {
-      res.status(404).json({ message: "User's email not found" });
+      res.status(404).json({ message: "User's email not found...!" });
       return;
     }
 
@@ -220,7 +220,7 @@ const verifyOtpResetPassword = async (
     );
 
     if (!storedOtpDetails) {
-      res.status(404).json({ message: "OTP not found or expired" });
+      res.status(404).json({ message: "OTP is incorrect...!" });
       return;
     }
     const [email] = storedOtpDetails;
@@ -235,7 +235,7 @@ const verifyOtpResetPassword = async (
 };
 
 // RESET PASSWORD
-const resetPassword = async (req: Request, res: Response): Promise<void> => {
+const resetPassword = async (req: Request, res: Response): Promise<any> => {
   try {
     const { newpassword } = req.body;
     const storedOtpDetails = Object.entries(resetPasswordOtpStore).find(
@@ -265,7 +265,7 @@ const resetPassword = async (req: Request, res: Response): Promise<void> => {
 };
 
 //GOOGLE LOGIN
-const googleLogin = async (req: Request, res: Response) => {
+const googleLogin = async (req: Request, res: Response) : Promise <any> => {
   try {
     const { code } = req.query as { code: string };
 
@@ -314,6 +314,27 @@ const googleLogin = async (req: Request, res: Response) => {
     return res.status(500).json({ message: "Server error" });
   }
 };
+const resendOTP = async (req: Request, res: Response): Promise<any> => {
+  try {
+    const { email }: { email: string } = req.body;
+
+    const user = await User.findOne({ email });
+    if (!user) {
+      return res.status(404).json({ message: "User not found...!" });
+    }
+    console.log(user)
+
+    const newOtp = Math.floor(1000 + Math.random() * 9000).toString();
+    const expiresIn = Date.now() + 300000; 
+    resetPasswordOtpStore[email] = { otp: newOtp, expiresIn };
+    await sendMail(email, newOtp);
+    return res.status(200).json({ message: "OTP sent successfully" });
+
+  } catch (error : any) {
+    console.error("Error resending OTP:", error.message);
+    return res.status(500).json({ message: "Internal Server error...!" });
+  }
+};
 
 export {
   signup,
@@ -323,4 +344,5 @@ export {
   verifyOtpResetPassword,
   resetPassword,
   googleLogin,
+  resendOTP
 };

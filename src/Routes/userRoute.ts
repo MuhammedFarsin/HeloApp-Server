@@ -5,7 +5,6 @@ import dotenv from "dotenv";
 
 dotenv.config();
 
-// Create Router
 const userRoute: Router = express.Router();
 const sessionSecret = process.env.SESSION_SECRET || "HELOAPP-SECRET";
 
@@ -30,8 +29,8 @@ userRoute.post(
   userController.verifyOtpResetPassword
 );
 userRoute.post("/reset-password", userController.resetPassword);
+userRoute.post("/resend-otp",userController.resendOTP)
 
-// Google OAuth Routes
 userRoute.get("/auth/google", userController.googleLogin);
 
 export default userRoute;
