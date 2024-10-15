@@ -1,6 +1,6 @@
 import express, { Router } from "express";
 import session from "express-session";
-import * as userController from "../Controllers/userController";
+import * as userController from "../Controllers/authController";
 import dotenv from "dotenv";
 
 dotenv.config();
@@ -30,6 +30,7 @@ userRoute.post(
 );
 userRoute.post("/reset-password", userController.resetPassword);
 userRoute.post("/resend-otp",userController.resendOTP)
+userRoute.post("/password-resend-otp",userController.passawordResendOTP)
 
 userRoute.get("/auth/google", userController.googleLogin);
 

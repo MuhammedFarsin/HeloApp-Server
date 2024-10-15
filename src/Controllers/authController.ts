@@ -116,6 +116,7 @@ const verifyOTP = async (req: Request, res: Response): Promise<void> => {
     }
 
     if (storedOTP.otp === otp) {
+      console.log(storedOTP.otp === otp)
       const newUser = new User(storedOTP.tempUser);
       await newUser.save();
 
@@ -316,13 +317,38 @@ const googleLogin = async (req: Request, res: Response) : Promise <any> => {
 };
 const resendOTP = async (req: Request, res: Response): Promise<any> => {
   try {
+    const { email } = req.body;
+
+    const storedEntry = otpStore[email];
+    if (!storedEntry) {
+      return res.status(404).json({ message: "User details not found." });
+    }
+
+    const newOtp = Math.floor(1000 + Math.random() * 9000).toString();
+    const expiresIn = Date.now() + 300000; 
+
+    otpStore[email] = {
+      otp: newOtp,
+      expiresIn: expiresIn,
+      tempUser: storedEntry.tempUser,
+    };
+
+    await sendMail(email, newOtp);
+
+    return res.status(200).json({ message: "OTP sent successfully." });
+  } catch (error: any) {
+    console.error("Error resending OTP:", error.message);
+    return res.status(500).json({ message: "Internal Server error." });
+  }
+}
+const passawordResendOTP = async (req: Request, res: Response): Promise<any> => {
+  try {
     const { email }: { email: string } = req.body;
 
     const user = await User.findOne({ email });
     if (!user) {
       return res.status(404).json({ message: "User not found...!" });
     }
-    console.log(user)
 
     const newOtp = Math.floor(1000 + Math.random() * 9000).toString();
     const expiresIn = Date.now() + 300000; 
@@ -344,5 +370,6 @@ export {
   verifyOtpResetPassword,
   resetPassword,
   googleLogin,
-  resendOTP
+  resendOTP,
+  passawordResendOTP
 };
