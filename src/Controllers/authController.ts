@@ -266,13 +266,15 @@ const resetPassword = async (req: Request, res: Response): Promise<any> => {
 };
 
 //GOOGLE LOGIN
-const googleLogin = async (req: Request, res: Response) : Promise <any> => {
+const googleLogin = async (req: Request, res: Response): Promise<any> => {
   try {
     const { code } = req.query as { code: string };
 
+    // Obtain Google tokens
     const googleRes = await oauth2Client.getToken(code);
     oauth2Client.setCredentials(googleRes.tokens);
 
+    // Fetch user data from Google using the access token
     const userRes = await axios.get(
       `https://www.googleapis.com/oauth2/v1/userinfo?alt=json&access_token=${googleRes.tokens.access_token}`
     );
@@ -282,39 +284,49 @@ const googleLogin = async (req: Request, res: Response) : Promise <any> => {
       given_name: firstName,
       family_name: lastName,
       picture: profilePicture,
+      id: googleId,
     } = userRes.data;
+
+    // Find if a user with this Google email already exists
     let user = await User.findOne({ email });
 
+    // If the user doesn't exist, create a new one with all fields
     if (!user) {
       user = await User.create({
         firstName,
         lastName,
         email,
         profilePicture,
-        displayName: `${firstName} ${lastName}`,
+        googleId,
+        displayName: `${firstName} ${lastName}`, // Example display name
+        bio: "", // Default or placeholder bio
+        phone: "", // Default phone if Google doesn't provide it
+        isAdmin: false,
+        isBlocked: false,
       });
 
       await user.save();
     }
 
+    // Generate a JWT token for the user
     const token = jwt.sign(
       { _id: user._id, email: user.email, isAdmin: user.isAdmin },
       jwtAccessToken,
       { expiresIn: "1h" }
     );
 
+    // Respond with user information and token
     return res.status(200).json({
-      message: user
-        ? "User logged in successfully"
-        : "User created and logged in successfully",
+      message: user ? "User logged in successfully" : "User created and logged in successfully",
       token,
       user,
     });
   } catch (error) {
-    console.log(error, "Error during Google login");
+    console.error("Error during Google login:", error);
     return res.status(500).json({ message: "Server error" });
   }
 };
+
 const resendOTP = async (req: Request, res: Response): Promise<any> => {
   try {
     const { email } = req.body;
