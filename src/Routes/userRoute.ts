@@ -1,6 +1,7 @@
 import express, { Router } from "express";
 import session from "express-session";
-import * as userController from "../Controllers/authController";
+import * as authController from "../Controllers/authController";
+import {updateUserid} from "../Controllers/userController";
 import dotenv from "dotenv";
 
 dotenv.config();
@@ -17,21 +18,23 @@ userRoute.use(
   })
 );
 
-userRoute.post("/login", userController.login);
-userRoute.post("/signup", userController.signup);
-userRoute.post("/verify-otp", userController.verifyOTP);
+userRoute.post("/login", authController.login);
+userRoute.post("/signup", authController.signup);
+userRoute.post("/verify-otp", authController.verifyOTP);
 userRoute.post(
   "/verify-email-resetPassword",
-  userController.verifyMailResetPassword
+  authController.verifyMailResetPassword
 );
 userRoute.post(
   "/verify-otp-resetpassword",
-  userController.verifyOtpResetPassword
+  authController.verifyOtpResetPassword
 );
-userRoute.post("/reset-password", userController.resetPassword);
-userRoute.post("/resend-otp",userController.resendOTP)
-userRoute.post("/password-resend-otp",userController.passawordResendOTP)
+userRoute.post("/reset-password", authController.resetPassword);
+userRoute.post("/resend-otp",authController.resendOTP)
+userRoute.post("/password-resend-otp",authController.passawordResendOTP)
 
-userRoute.get("/auth/google", userController.googleLogin);
+userRoute.get("/auth/google", authController.googleLogin);
+
+userRoute.patch("/update-user-helo_id", updateUserid )
 
 export default userRoute;

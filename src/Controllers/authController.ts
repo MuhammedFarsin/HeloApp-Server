@@ -47,13 +47,13 @@ const signup = async (req: Request, res: Response): Promise<void> => {
     const {
       username,
       email,
+      helo_id,
       phone,
       password,
       firstName,
       lastName,
       bio,
       profilePicture,
-      displayName,
       googleId,
     }: IUser = req.body;
 
@@ -72,18 +72,17 @@ const signup = async (req: Request, res: Response): Promise<void> => {
     const newUser = new User({
       username,
       email,
+      helo_id : helo_id || "",
       phone,
       password: hashedPassword,
       firstName: firstName || "",
       lastName: lastName || "",
       bio: bio || "",
       profilePicture: profilePicture || "",
-      displayName: displayName || "",
       googleId: googleId || "",
       isAdmin: false,
       isBlocked: false,
     });
-    // console.log(newUser)
     const otp = generateOTP();
     otpStore[email] = {
       otp,
@@ -295,10 +294,10 @@ const googleLogin = async (req: Request, res: Response): Promise<any> => {
       user = await User.create({
         firstName,
         lastName,
+        helo_id : "",
         email,
         profilePicture,
         googleId,
-        displayName: `${firstName} ${lastName}`, // Example display name
         bio: "", // Default or placeholder bio
         phone: "", // Default phone if Google doesn't provide it
         isAdmin: false,

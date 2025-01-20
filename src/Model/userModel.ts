@@ -10,6 +10,9 @@ const userSchema: Schema<IUser> = new Schema({
   lastName: {
     type: String,
   },
+  helo_id : {
+    type : String
+  },
   username: {
     type: String,
   },
@@ -27,9 +30,6 @@ const userSchema: Schema<IUser> = new Schema({
   googleId: {
     type: String,
     unique : true
-  },
-  displayName: {
-    type: String,
   },
   isAdmin: {
     type: Boolean,
