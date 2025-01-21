@@ -1,7 +1,12 @@
 import express, { Router } from "express";
 import session from "express-session";
 import * as authController from "../Controllers/authController";
-import {updateUserid} from "../Controllers/userController";
+import {
+  getUser,
+  updateUserid,
+  updateProfilePicture,
+  uploadProfilePicture,
+} from "../Controllers/userController";
 import dotenv from "dotenv";
 
 dotenv.config();
@@ -30,11 +35,17 @@ userRoute.post(
   authController.verifyOtpResetPassword
 );
 userRoute.post("/reset-password", authController.resetPassword);
-userRoute.post("/resend-otp",authController.resendOTP)
-userRoute.post("/password-resend-otp",authController.passawordResendOTP)
+userRoute.post("/resend-otp", authController.resendOTP);
+userRoute.post("/password-resend-otp", authController.passawordResendOTP);
 
 userRoute.get("/auth/google", authController.googleLogin);
 
-userRoute.patch("/update-user-helo_id", updateUserid )
+userRoute.get("/user-details/:userId",getUser)
+userRoute.patch("/update-user-helo_id", updateUserid);
+userRoute.patch(
+  "/update-profile-picture",
+  uploadProfilePicture,
+  updateProfilePicture  
+);
 
 export default userRoute;
