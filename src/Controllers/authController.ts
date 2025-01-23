@@ -55,6 +55,7 @@ const signup = async (req: Request, res: Response): Promise<void> => {
       bio,
       profilePicture,
       googleId,
+      status
     }: IUser = req.body;
 
     if (!username || !email || !phone || !password) {
@@ -69,6 +70,7 @@ const signup = async (req: Request, res: Response): Promise<void> => {
       return;
     }
     const hashedPassword = await bcrypt.hash(password, 10);
+    const userStatus = status || "ACTIVE";
     const newUser = new User({
       username,
       email,
@@ -79,9 +81,10 @@ const signup = async (req: Request, res: Response): Promise<void> => {
       lastName: lastName || "",
       bio: bio || "",
       profilePicture: profilePicture || "",
-      googleId: googleId || "",
+      googleId: googleId || null,
       isAdmin: false,
       isBlocked: false,
+      status : userStatus
     });
     const otp = generateOTP();
     otpStore[email] = {
@@ -148,12 +151,15 @@ const login = async (req: Request, res: Response): Promise<void> => {
       res.status(404).json({ message: "User not found...!" });
       return;
     }
-
+    if(user.status === "BLOCKED"){
+      res.status(403).json({ message: "Your account has been blocked. Please contact support." });
+    }
     const isPasswordValid = await bcrypt.compare(password, user.password);
     if (!isPasswordValid) {
       res.status(401).json({ message: "Invalid password...!" });
       return;
     }
+    
 
     const token = jwt.sign(
       { userId: user._id, username: user.username, email: user.email },
@@ -167,10 +173,12 @@ const login = async (req: Request, res: Response): Promise<void> => {
       message: "Login successful",
       token,
       user: {
-        id: user._id,
+        _id: user._id,
         email: user.email,
         username: user.username,
         phone: user.phone,
+        isAdmin : user.isAdmin,
+        status: user.status
       },
     });
   } catch (error) {
@@ -302,6 +310,7 @@ const googleLogin = async (req: Request, res: Response): Promise<any> => {
         phone: "", // Default phone if Google doesn't provide it
         isAdmin: false,
         isBlocked: false,
+        
       });
 
       await user.save();

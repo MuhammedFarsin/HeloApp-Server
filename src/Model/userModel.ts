@@ -10,8 +10,8 @@ const userSchema: Schema<IUser> = new Schema({
   lastName: {
     type: String,
   },
-  helo_id : {
-    type : String
+  helo_id: {
+    type: String,
   },
   username: {
     type: String,
@@ -29,7 +29,8 @@ const userSchema: Schema<IUser> = new Schema({
   },
   googleId: {
     type: String,
-    unique : true
+    sparse: true,
+    default: null,
   },
   isAdmin: {
     type: Boolean,
@@ -44,6 +45,11 @@ const userSchema: Schema<IUser> = new Schema({
   },
   profilePicture: {
     type: String,
+  },
+  status: {
+    type: String,
+    enum: ["ACTIVE", "BLOCKED"],
+    default: "ACTIVE",
   },
 });
 

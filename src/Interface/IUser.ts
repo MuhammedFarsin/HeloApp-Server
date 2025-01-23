@@ -14,4 +14,5 @@ export interface IUser extends Document {
   isBlocked?: boolean;
   profilePicture?: String;
   bio?: string;
+  status?: string;
 }

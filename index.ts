@@ -3,6 +3,7 @@ import mongoose from 'mongoose'
 import dotenv from 'dotenv'
 import cors from "cors"
 import  userRoute from "./src/Routes/userRoute"
+import  adminRoute from "./src/Routes/adminRoute"
 
 dotenv.config()
 
@@ -17,6 +18,7 @@ app.use(express.json());
 app.use(cors());
 
 app.use('/',userRoute)
+app.use('/admin',adminRoute)
 
 app.listen(port, () => {
     console.log(`App is listening on ${port}`)
