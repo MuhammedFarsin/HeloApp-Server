@@ -134,33 +134,36 @@ const verifyOTP = async (req: Request, res: Response): Promise<void> => {
   }
 };
 // LOGIN
-const login = async (req: Request, res: Response): Promise<void> => {
+const login = async (req: Request, res: Response): Promise<any> => {
   try {
     const { username, password } = req.body;
 
+    // Validate input
     if (!username || !password) {
-      res.status(400).json({ message: "Username and password are required" });
-      return;
+      return res.status(400).json({ message: "Username and password are required" });
     }
 
+    // Find the user
     const user = await User.findOne({
-      username: { $regex: new RegExp(`^${username}$`, "i") }  // case-insensitive match
+      username: { $regex: new RegExp(`^${username}$`, "i") }, // case-insensitive match
     });
 
     if (!user || !user.password) {
-      res.status(404).json({ message: "User not found...!" });
-      return;
+      return res.status(404).json({ message: "User not found...!" });
     }
-    if(user.status === "BLOCKED"){
-      res.status(403).json({ message: "Your account has been blocked. Please contact support." });
+
+    // Check if the user is blocked
+    if (user.status === "BLOCKED") {
+      return res.status(403).json({ message: "Your account has been blocked. Please contact support." });
     }
+
+    // Validate password
     const isPasswordValid = await bcrypt.compare(password, user.password);
     if (!isPasswordValid) {
-      res.status(401).json({ message: "Invalid password...!" });
-      return;
+      return res.status(401).json({ message: "Invalid password...!" });
     }
-    
 
+    // Generate JWT token
     const token = jwt.sign(
       { userId: user._id, username: user.username, email: user.email },
       jwtAccessToken,
@@ -169,6 +172,7 @@ const login = async (req: Request, res: Response): Promise<void> => {
       }
     );
 
+    // Send success response
     res.status(200).json({
       message: "Login successful",
       token,
@@ -177,8 +181,8 @@ const login = async (req: Request, res: Response): Promise<void> => {
         email: user.email,
         username: user.username,
         phone: user.phone,
-        isAdmin : user.isAdmin,
-        status: user.status
+        isAdmin: user.isAdmin,
+        status: user.status,
       },
     });
   } catch (error) {
@@ -381,6 +385,23 @@ const passawordResendOTP = async (req: Request, res: Response): Promise<any> => 
     return res.status(500).json({ message: "Internal Server error...!" });
   }
 };
+// const checkUserStatus = async (req: Request, res: Response): Promise<any> => {
+//   try {
+//     const userId = req.user?.userId; // Assuming the JWT payload contains userId
+//     const user = await User.findById(userId);
+
+//     if (!user) {
+//       res.status(404).json({ message: "User not found" });
+//       return;
+//     }
+
+//     // Return the user's status
+//     res.status(200).json({ status: user.status });
+//   } catch (error) {
+//     console.error("Error checking user status:", error);
+//     res.status(500).json({ message: "Internal Server Error" });
+//   }
+// };
 
 export {
   signup,

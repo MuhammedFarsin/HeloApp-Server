@@ -1,6 +1,8 @@
 import express, { Router } from "express";
 import session from "express-session";
 import * as authController from "../Controllers/authController";
+import JWTtoken from "../Config/jwtToken"
+// import userStatus from "../Middleware/CheckUserStatus"
 import {
   getUser,
   updateUserid,
@@ -23,6 +25,8 @@ userRoute.use(
   })
 );
 
+// userRoute.use(userStatus);
+
 userRoute.post("/login", authController.login);
 userRoute.post("/signup", authController.signup);
 userRoute.post("/verify-otp", authController.verifyOTP);
@@ -40,10 +44,10 @@ userRoute.post("/password-resend-otp", authController.passawordResendOTP);
 
 userRoute.get("/auth/google", authController.googleLogin);
 
-userRoute.get("/user-details/:userId",getUser)
-userRoute.patch("/update-user-helo_id", updateUserid);
+userRoute.get("/user-details/:userId",JWTtoken,getUser)
+userRoute.patch("/update-user-helo_id", JWTtoken,updateUserid);
 userRoute.patch(
-  "/update-profile-picture",
+  "/update-profile-picture",JWTtoken,
   uploadProfilePicture,
   updateProfilePicture  
 );
