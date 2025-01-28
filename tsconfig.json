@@ -2,7 +2,6 @@
   "compilerOptions": {
    "typeRoots": [
        "./node_modules/@types",
-       "src/types"
      ],
       "lib": [
           "dom",
@@ -10,7 +9,8 @@
           "esnext"
       ],
       "esModuleInterop": true,
-      "target": "es5",
+     "target": "ES6",
+     "rootDir": "./src",
       "module": "commonjs",
       "moduleResolution": "node",
       "outDir": "./dist",
@@ -18,6 +18,9 @@
       "experimentalDecorators": true,
       "sourceMap": true,
       "forceConsistentCasingInFileNames": true,
-      "strict": true
-  }
+      "strict": true,
+      "skipLibCheck": true
+  },
+  "include": ["src/**/*.ts"],
+  "exclude": ["node_modules"]
 }

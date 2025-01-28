@@ -1,6 +1,7 @@
 import { Request, Response } from "express";
 import User from "../Model/userModel";
 import bcrypt from "bcrypt";
+import crypto from "crypto";
 import transporter from "../Config/config";
 import jwt from "jsonwebtoken";
 import { oauth2Client } from "../Config/googleAuth";
@@ -164,18 +165,19 @@ const login = async (req: Request, res: Response): Promise<any> => {
     }
 
     // Generate JWT token
-    const token = jwt.sign(
+    const accessToken = jwt.sign(
       { userId: user._id, username: user.username, email: user.email },
       jwtAccessToken,
-      {
-        expiresIn: "1h",
-      }
+      { expiresIn: "1h" } // Access token expires in 1 hour
     );
-
+    const refreshToken = crypto.randomBytes(40).toString("hex"); // Create a secure refresh token
+    user.refreshToken = refreshToken; // Save refresh token in the database
+    await user.save();
     // Send success response
     res.status(200).json({
       message: "Login successful",
-      token,
+      accessToken,
+      refreshToken,
       user: {
         _id: user._id,
         email: user.email,
@@ -185,6 +187,7 @@ const login = async (req: Request, res: Response): Promise<any> => {
         status: user.status,
       },
     });
+    
   } catch (error) {
     console.error("Error during login:", (error as Error).message);
     res.status(500).json({ message: "Internal Server Error" });
@@ -242,6 +245,32 @@ const verifyOtpResetPassword = async (
       "Error during OTP verification for password reset:",
       (error as Error).message
     );
+    res.status(500).json({ message: "Internal Server Error" });
+  }
+};
+const refreshToken = async (req: Request, res: Response): Promise<any> => {
+  try {
+    const { refreshToken } = req.body;
+
+    if (!refreshToken) {
+      return res.status(400).json({ message: "Refresh token is required" });
+    }
+
+    const user = await User.findOne({ refreshToken });
+
+    if (!user) {
+      return res.status(403).json({ message: "Invalid refresh token" });
+    }
+
+    const accessToken = jwt.sign(
+      { userId: user._id, username: user.username, email: user.email },
+      jwtAccessToken,
+      { expiresIn: "1h" } // New access token valid for 1 hour
+    );
+
+    res.status(200).json({ accessToken });
+  } catch (error) {
+    console.error("Error during token refresh:",error);
     res.status(500).json({ message: "Internal Server Error" });
   }
 };
@@ -321,16 +350,20 @@ const googleLogin = async (req: Request, res: Response): Promise<any> => {
     }
 
     // Generate a JWT token for the user
-    const token = jwt.sign(
-      { _id: user._id, email: user.email, isAdmin: user.isAdmin },
+    const accessToken = jwt.sign(
+      { userId: user._id, username: user.username, email: user.email },
       jwtAccessToken,
-      { expiresIn: "1h" }
+      { expiresIn: "1h" } // Access token expires in 1 hour
     );
+    const refreshToken = crypto.randomBytes(40).toString("hex"); // Create a secure refresh token
+    user.refreshToken = refreshToken; // Save refresh token in the database
+    await user.save();
 
     // Respond with user information and token
     return res.status(200).json({
       message: user ? "User logged in successfully" : "User created and logged in successfully",
-      token,
+      accessToken,
+      refreshToken,
       user,
     });
   } catch (error) {
@@ -385,23 +418,26 @@ const passawordResendOTP = async (req: Request, res: Response): Promise<any> => 
     return res.status(500).json({ message: "Internal Server error...!" });
   }
 };
-// const checkUserStatus = async (req: Request, res: Response): Promise<any> => {
-//   try {
-//     const userId = req.user?.userId; // Assuming the JWT payload contains userId
-//     const user = await User.findById(userId);
+const logout = async (req: Request, res: Response): Promise<any> => {
+  try {
+    const { refreshToken } = req.body;
 
-//     if (!user) {
-//       res.status(404).json({ message: "User not found" });
-//       return;
-//     }
+    const user = await User.findOneAndUpdate(
+      { refreshToken },
+      { refreshToken: null }
+    );
 
-//     // Return the user's status
-//     res.status(200).json({ status: user.status });
-//   } catch (error) {
-//     console.error("Error checking user status:", error);
-//     res.status(500).json({ message: "Internal Server Error" });
-//   }
-// };
+    if (!user) {
+      return res.status(400).json({ message: "Invalid refresh token" });
+    }
+
+    res.status(200).json({ message: "Logged out successfully" });
+  } catch (error) {
+    console.error("Error during logout:", error);
+    res.status(500).json({ message: "Internal Server Error" });
+  }
+};
+
 
 export {
   signup,
@@ -412,5 +448,7 @@ export {
   resetPassword,
   googleLogin,
   resendOTP,
-  passawordResendOTP
+  passawordResendOTP,
+  refreshToken,
+  logout
 };

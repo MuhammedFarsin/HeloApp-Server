@@ -15,4 +15,5 @@ export interface IUser extends Document {
   profilePicture?: String;
   bio?: string;
   status?: string;
+  refreshToken?: string;
 }

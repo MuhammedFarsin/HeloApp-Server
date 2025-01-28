@@ -41,7 +41,7 @@ userRoute.post(
 userRoute.post("/reset-password", authController.resetPassword);
 userRoute.post("/resend-otp", authController.resendOTP);
 userRoute.post("/password-resend-otp", authController.passawordResendOTP);
-
+userRoute.post("/refresh-token", authController.refreshToken);
 userRoute.get("/auth/google", authController.googleLogin);
 
 userRoute.get("/user-details/:userId",JWTtoken,getUser)
@@ -51,5 +51,7 @@ userRoute.patch(
   uploadProfilePicture,
   updateProfilePicture  
 );
+userRoute.post("/logout", authController.logout);
+
 
 export default userRoute;

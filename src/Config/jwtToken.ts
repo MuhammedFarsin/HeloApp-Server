@@ -9,31 +9,30 @@ interface CustomRequest extends Request {
   user?: string | JwtPayload;
 }
 
-const authenticateJWT = (
-  req: CustomRequest,
-  res: Response,
-  next: NextFunction
-): void => {
+const authenticateJWT = (req: CustomRequest, res: Response, next: NextFunction): Response | void => {
+  const authHeader = req.headers.authorization;
+
+  // Validate Authorization header format
+  if (!authHeader || !authHeader.startsWith("Bearer ")) {
+    return res.status(401).json({ message: "Authorization header missing or invalid" });
+  }
+
+  const token = authHeader.split(" ")[1];
+
   try {
-    const authHeader = req.headers.authorization;
-
-    if (authHeader) {
-      const token = authHeader.split(" ")[1];
-
-      jwt.verify(token, jwtAccessToken, (err, decoded) => {
-        if (err) {
-          console.log("JWT verification error:", err);
-          return res.sendStatus(403); // Invalid token
-        }
-        req.user = decoded; // Save decoded JWT payload to req.user
-        next(); // Proceed if the token is valid
-      });
-    } else {
-      res.sendStatus(401); // No token provided
+    // Synchronously verify the token
+    const decoded = jwt.verify(token, jwtAccessToken);
+    req.user = decoded;
+    next(); // Proceed to the next middleware
+  } catch (err: any) {
+    // Handle token errors explicitly
+    if (err.name === "TokenExpiredError") {
+      return res.status(401).json({ message: "Token expired" });
+    } else if (err.name === "JsonWebTokenError") {
+      return res.status(401).json({ message: "Invalid token" });
     }
-  } catch (error) {
-    console.error("JWT Authentication Error:", error);
-    res.status(500).json({ message: "Internal Server Error" });
+    // General error
+    return res.status(500).json({ message: "Internal server error" });
   }
 };
 
